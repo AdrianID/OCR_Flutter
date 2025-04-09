@@ -2,6 +2,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../services/volume_button_service.dart';
 
 class ScanBookPage extends StatefulWidget {
   const ScanBookPage({super.key});
@@ -15,12 +16,28 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
   late final Future<void> _future;
   CameraController? _cameraController;
   final textRecognizer = TextRecognizer();
+  final _volumeButtonService = VolumeButtonService();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _future = _requestCameraPermission();
+    print('Babayo');
+    _setupVolumeButtons();
+  }
+
+  void _setupVolumeButtons() {
+    debugPrint('Setting up volume buttons...');
+    _volumeButtonService.onVolumeUp = () {
+      debugPrint('Volume up callback triggered');
+      _scanImage();
+    };
+    _volumeButtonService.onVolumeDown = () {
+      debugPrint('Volume down callback triggered');
+      Navigator.of(context).pop();
+    };
+    _volumeButtonService.startListening();
   }
 
   @override
@@ -28,6 +45,7 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
     WidgetsBinding.instance.removeObserver(this);
     _stopCamera();
     textRecognizer.close();
+    _volumeButtonService.stopListening();
     super.dispose();
   }
 
@@ -146,7 +164,7 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
                               Semantics(
                                 button: true,
                                 label: 'Tombol untuk memindai teks',
-                                hint: 'Tekan untuk memulai pemindaian teks dari kamera',
+                                hint: 'Tekan untuk memulai pemindaian teks dari kamera atau gunakan tombol volume atas',
                                 child: ElevatedButton(
                                   onPressed: _scanImage,
                                   style: ElevatedButton.styleFrom(
