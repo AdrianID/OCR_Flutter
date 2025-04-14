@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/volume_button_service.dart';
+import '../services/tts_service.dart';
 
 class TextResultPage extends StatefulWidget {
   final String scannedText;
@@ -15,6 +16,8 @@ class TextResultPage extends StatefulWidget {
 
 class _TextResultPageState extends State<TextResultPage> {
   final _volumeButtonService = VolumeButtonService();
+  final _ttsService = TTSService();
+  bool _isSpeaking = false;
 
   @override
   void initState() {
@@ -24,29 +27,38 @@ class _TextResultPageState extends State<TextResultPage> {
 
   void _setupVolumeButtons() {
     _volumeButtonService.onVolumeUp = () {
-      // Volume up untuk membaca teks
-      _readText();
+      if (_isSpeaking) {
+        _ttsService.stop();
+        setState(() {
+          _isSpeaking = false;
+        });
+      } else {
+        _readText();
+      }
     };
     _volumeButtonService.onVolumeDown = () {
-      // Volume down untuk kembali ke halaman sebelumnya
+      if (_isSpeaking) {
+        _ttsService.stop();
+      }
       Navigator.of(context).pop();
     };
     _volumeButtonService.startListening();
   }
 
-  void _readText() {
-    // TODO: Implementasi text-to-speech
-    // Untuk sementara kita hanya akan menampilkan snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur text-to-speech akan segera hadir'),
-      ),
-    );
+  Future<void> _readText() async {
+    setState(() {
+      _isSpeaking = true;
+    });
+    await _ttsService.speak(widget.scannedText);
+    setState(() {
+      _isSpeaking = false;
+    });
   }
 
   @override
   void dispose() {
     _volumeButtonService.stopListening();
+    _ttsService.dispose();
     super.dispose();
   }
 
@@ -72,6 +84,11 @@ class _TextResultPageState extends State<TextResultPage> {
                 ),
               ),
             ),
+            if (_isSpeaking)
+              const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
           ],
         ),
       ),

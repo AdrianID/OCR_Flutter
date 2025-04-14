@@ -66,6 +66,9 @@ class VolumeButtonService {
       await platform.invokeMethod('stopListening');
       _isListening = false;
       platform.setMethodCallHandler(null);
+      // Clear callbacks
+      onVolumeUp = null;
+      onVolumeDown = null;
       debugPrint('Successfully stopped listening to volume buttons');
     } on PlatformException catch (e) {
       debugPrint('Failed to stop listening: ${e.message}');
