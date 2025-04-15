@@ -12,13 +12,40 @@ class TTSService {
     if (_isInitialized) return;
 
     try {
-      await _flutterTts.setLanguage('id-ID');
-    await _flutterTts.setSpeechRate(0.5); // Kecepatan bicara
-    await _flutterTts.setVolume(1.0); // Volume
-    await _flutterTts.setPitch(1.0); // Nada suara
-    
-    // Set engine ke Google TTS
+      // Set engine to Google TTS first
       await _flutterTts.setEngine('com.google.android.tts');
+      
+      // Get available languages
+      final languages = await _flutterTts.getLanguages;
+      
+      // Force Indonesian language
+      await _flutterTts.setLanguage('id-ID');
+      
+      // Get available voices
+      final voices = await _flutterTts.getVoices;
+     
+      // Check for Indonesian voice
+      if (voices != null) {
+        for (final voice in voices) {
+          final locale = voice['locale']?.toString().toLowerCase();
+          if (locale != null && (locale.startsWith('id-') || locale == 'id')) {
+           
+            final Map<String, String> voiceMap = {
+              'name': voice['name']?.toString() ?? '',
+              'locale': voice['locale']?.toString() ?? '',
+            };
+
+            await _flutterTts.setVoice(voiceMap);
+            
+            break;
+          }
+        }
+      }
+
+      // Set voice parameters
+      await _flutterTts.setSpeechRate(0.45); // Kecepatan bicara lebih lambat
+      await _flutterTts.setVolume(1.0);      // Volume maksimal untuk kejelasan
+      await _flutterTts.setPitch(0.9);       // Pitch sedikit diturunkan agar lebih nyaman
       
       _isInitialized = true;
     } catch (e) {
@@ -33,9 +60,12 @@ class TTSService {
     }
     
     try {
+      // Ensure Indonesian language is set before speaking
+      await _flutterTts.setLanguage('id-ID');
       await _flutterTts.speak(text);
     } catch (e) {
       print('Error speaking text: $e');
+      rethrow;
     }
   }
 
@@ -44,6 +74,7 @@ class TTSService {
       await _flutterTts.stop();
     } catch (e) {
       print('Error stopping TTS: $e');
+      rethrow;
     }
   }
 
@@ -52,6 +83,7 @@ class TTSService {
       await _flutterTts.stop();
     } catch (e) {
       print('Error disposing TTS: $e');
+      rethrow;
     }
   }
 } 
