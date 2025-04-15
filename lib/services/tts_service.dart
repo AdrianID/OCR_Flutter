@@ -11,15 +11,20 @@ class TTSService {
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    await _flutterTts.setLanguage('id-ID');
+    try {
+      await _flutterTts.setLanguage('id-ID');
     await _flutterTts.setSpeechRate(0.5); // Kecepatan bicara
     await _flutterTts.setVolume(1.0); // Volume
     await _flutterTts.setPitch(1.0); // Nada suara
     
     // Set engine ke Google TTS
-    await _flutterTts.setEngine('com.google.android.tts');
-    
-    _isInitialized = true;
+      await _flutterTts.setEngine('com.google.android.tts');
+      
+      _isInitialized = true;
+    } catch (e) {
+      print('Error initializing TTS: $e');
+      rethrow;
+    }
   }
 
   Future<void> speak(String text) async {
