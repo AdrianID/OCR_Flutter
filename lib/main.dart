@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/scan_book_page.dart';
+import 'pages/storage_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -137,7 +138,12 @@ class MyHomePage extends StatelessWidget {
                 height: 100,
                 child: ElevatedButton(
                   onPressed: () {
-                    // TODO: Implementasi fungsi lihat penyimpanan
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StoragePage(),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.all(20),

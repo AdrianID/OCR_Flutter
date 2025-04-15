@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import '../services/volume_button_service.dart';
 import '../services/tts_service.dart';
+import '../services/audio_storage_service.dart';
+import '../models/audio_book.dart';
 
 class TextResultPage extends StatefulWidget {
   final String scannedText;
@@ -17,12 +20,16 @@ class TextResultPage extends StatefulWidget {
 class _TextResultPageState extends State<TextResultPage> {
   final _volumeButtonService = VolumeButtonService();
   final _ttsService = TTSService();
+  final _audioStorageService = AudioStorageService();
   bool _isSpeaking = false;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _setupVolumeButtons();
+    _audioStorageService.init();
+    _ttsService.initialize();
   }
 
   void _setupVolumeButtons() {
@@ -55,6 +62,45 @@ class _TextResultPageState extends State<TextResultPage> {
     });
   }
 
+  Future<void> _saveAudioBook() async {
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final title = 'Buku ${DateTime.now().toString()}';
+      
+      final audioBook = AudioBook(
+        id: const Uuid().v4(),
+        title: title,
+        text: widget.scannedText,
+        createdAt: DateTime.now(),
+      );
+
+      await _audioStorageService.saveAudioBook(audioBook);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Buku berhasil disimpan')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan buku: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _volumeButtonService.stopListening();
@@ -67,6 +113,13 @@ class _TextResultPageState extends State<TextResultPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hasil Pemindaian'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.save),
+            onPressed: _isSaving ? null : _saveAudioBook,
+            tooltip: 'Simpan Buku',
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -84,7 +137,7 @@ class _TextResultPageState extends State<TextResultPage> {
                 ),
               ),
             ),
-            if (_isSpeaking)
+            if (_isSpeaking || _isSaving)
               const Padding(
                 padding: EdgeInsets.all(8.0),
                 child: CircularProgressIndicator(),
