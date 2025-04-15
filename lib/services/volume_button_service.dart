@@ -25,13 +25,14 @@ class VolumeButtonService {
       await platform.invokeMethod('startListening');
       _isListening = true;
       debugPrint('Successfully started listening to volume buttons');
+      debugPrint('Double-click volume up/down to trigger actions');
       
       // Set up method call handler
       platform.setMethodCallHandler((call) async {
         debugPrint('Method call received: ${call.method}');
         switch (call.method) {
           case 'volumeUp':
-            debugPrint('Volume Up pressed - Executing callback');
+            debugPrint('Volume Up double-click detected - Executing callback');
             HapticFeedback.mediumImpact();
             if (onVolumeUp != null) {
               onVolumeUp!();
@@ -40,7 +41,7 @@ class VolumeButtonService {
             }
             break;
           case 'volumeDown':
-            debugPrint('Volume Down pressed - Executing callback');
+            debugPrint('Volume Down double-click detected - Executing callback');
             HapticFeedback.lightImpact();
             if (onVolumeDown != null) {
               onVolumeDown!();
