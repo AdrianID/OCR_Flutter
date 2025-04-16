@@ -43,9 +43,9 @@ class TTSService {
       }
 
       // Set voice parameters
-      await _flutterTts.setSpeechRate(0.45); // Kecepatan bicara lebih lambat
+      await _flutterTts.setSpeechRate(0.5); // Kecepatan bicara lebih lambat
       await _flutterTts.setVolume(1.0);      // Volume maksimal untuk kejelasan
-      await _flutterTts.setPitch(0.9);       // Pitch sedikit diturunkan agar lebih nyaman
+      await _flutterTts.setPitch(1);       // Pitch sedikit diturunkan agar lebih nyaman
       
       _isInitialized = true;
     } catch (e) {

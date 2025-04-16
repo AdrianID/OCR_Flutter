@@ -23,6 +23,7 @@ class _TextResultPageState extends State<TextResultPage> {
   final _audioStorageService = AudioStorageService();
   bool _isSpeaking = false;
   bool _isSaving = false;
+  bool _isPaused = false;
 
   @override
   void initState() {
@@ -30,22 +31,42 @@ class _TextResultPageState extends State<TextResultPage> {
     _setupVolumeButtons();
     _audioStorageService.init();
     _ttsService.initialize();
+    _startAutoReading();
+  }
+
+  void _startAutoReading() {
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted && !_isSpeaking && !_isPaused) {
+        _readText();
+      }
+    });
   }
 
   void _setupVolumeButtons() {
     _volumeButtonService.onVolumeUp = () {
       if (_isSpeaking) {
-        _ttsService.stop();
-        setState(() {
-          _isSpeaking = false;
-        });
+        if (_isPaused) {
+          // Resume reading
+          _readText();
+        } else {
+          // Pause reading
+          _ttsService.stop();
+          setState(() {
+            _isPaused = true;
+          });
+        }
       } else {
+        // Start reading
         _readText();
       }
     };
     _volumeButtonService.onVolumeDown = () {
       if (_isSpeaking) {
         _ttsService.stop();
+        setState(() {
+          _isSpeaking = false;
+          _isPaused = false;
+        });
       }
       Navigator.of(context).pop();
     };
@@ -55,11 +76,15 @@ class _TextResultPageState extends State<TextResultPage> {
   Future<void> _readText() async {
     setState(() {
       _isSpeaking = true;
+      _isPaused = false;
     });
     await _ttsService.speak(widget.scannedText);
-    setState(() {
-      _isSpeaking = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isSpeaking = false;
+        _isPaused = false;
+      });
+    }
   }
 
   Future<void> _saveAudioBook() async {
@@ -129,7 +154,7 @@ class _TextResultPageState extends State<TextResultPage> {
               child: SingleChildScrollView(
                 child: Semantics(
                   label: 'Hasil pemindaian teks',
-                  hint: 'Gunakan tombol volume atas untuk mendengarkan teks, tombol volume bawah untuk kembali',
+                  hint: 'Gunakan tombol volume atas untuk mengontrol pemutaran, tombol volume bawah untuk kembali',
                   child: Text(
                     widget.scannedText,
                     style: const TextStyle(fontSize: 18),
@@ -138,9 +163,21 @@ class _TextResultPageState extends State<TextResultPage> {
               ),
             ),
             if (_isSpeaking || _isSaving)
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_isSpeaking)
+                      Icon(
+                        _isPaused ? Icons.play_arrow : Icons.pause,
+                        size: 24,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    const SizedBox(width: 8),
+                    const CircularProgressIndicator(),
+                  ],
+                ),
               ),
           ],
         ),
