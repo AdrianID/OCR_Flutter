@@ -14,6 +14,11 @@ public class MainActivity extends FlutterActivity {
     private long lastVolumeUpClickTime = 0;
     private long lastVolumeDownClickTime = 0;
     private static final long DOUBLE_CLICK_TIME_DELTA = 300; // milliseconds
+    
+    // Variables for simultaneous press detection
+    private boolean volumeUpPressed = false;
+    private boolean volumeDownPressed = false;
+    private static final long SIMULTANEOUS_PRESS_TIME_DELTA = 1000; // milliseconds
 
     @Override
     public void configureFlutterEngine(FlutterEngine flutterEngine) {
@@ -32,6 +37,8 @@ public class MainActivity extends FlutterActivity {
                 result.notImplemented();
             }
         });
+
+        flutterEngine.getPlugins().add(new VolumeButtonPlugin());
     }
 
     @Override
@@ -40,31 +47,53 @@ public class MainActivity extends FlutterActivity {
         long currentTime = System.currentTimeMillis();
         
         if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) {
+            volumeUpPressed = true;
+            Log.d(TAG, "Volume up pressed, up: " + volumeUpPressed + ", down: " + volumeDownPressed);
+            
+            if (volumeDownPressed) {
+                Log.d(TAG, "Volume buttons pressed simultaneously");
+                if (methodChannel != null) {
+                    methodChannel.invokeMethod("volumeBoth", null);
+                }
+                volumeUpPressed = false;
+                volumeDownPressed = false;
+                return true;
+            }
+            
             if (currentTime - lastVolumeUpClickTime < DOUBLE_CLICK_TIME_DELTA) {
-                // Double click detected
                 Log.d(TAG, "Volume up double click detected");
                 if (methodChannel != null) {
                     methodChannel.invokeMethod("volumeUp", null);
                 }
-                lastVolumeUpClickTime = 0; // Reset to prevent triple click
+                lastVolumeUpClickTime = 0;
             } else {
-                // First click
                 lastVolumeUpClickTime = currentTime;
-                return false; // Allow normal volume up
+                return false;
             }
             return true;
         } else if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+            volumeDownPressed = true;
+            Log.d(TAG, "Volume down pressed, up: " + volumeUpPressed + ", down: " + volumeDownPressed);
+            
+            if (volumeUpPressed) {
+                Log.d(TAG, "Volume buttons pressed simultaneously");
+                if (methodChannel != null) {
+                    methodChannel.invokeMethod("volumeBoth", null);
+                }
+                volumeUpPressed = false;
+                volumeDownPressed = false;
+                return true;
+            }
+            
             if (currentTime - lastVolumeDownClickTime < DOUBLE_CLICK_TIME_DELTA) {
-                // Double click detected
                 Log.d(TAG, "Volume down double click detected");
                 if (methodChannel != null) {
                     methodChannel.invokeMethod("volumeDown", null);
                 }
-                lastVolumeDownClickTime = 0; // Reset to prevent triple click
+                lastVolumeDownClickTime = 0;
             } else {
-                // First click
                 lastVolumeDownClickTime = currentTime;
-                return false; // Allow normal volume down
+                return false;
             }
             return true;
         }
@@ -74,8 +103,13 @@ public class MainActivity extends FlutterActivity {
     @Override
     public boolean onKeyUp(int keyCode, android.view.KeyEvent event) {
         Log.d(TAG, "Key up event: " + keyCode);
-        if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP || 
-            keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+        if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_UP) {
+            volumeUpPressed = false;
+            Log.d(TAG, "Volume up released, up: " + volumeUpPressed + ", down: " + volumeDownPressed);
+            return true;
+        } else if (keyCode == android.view.KeyEvent.KEYCODE_VOLUME_DOWN) {
+            volumeDownPressed = false;
+            Log.d(TAG, "Volume down released, up: " + volumeUpPressed + ", down: " + volumeDownPressed);
             return true;
         }
         return super.onKeyUp(keyCode, event);

@@ -1,17 +1,53 @@
 import 'package:flutter/material.dart';
 import 'pages/scan_book_page.dart';
 import 'pages/storage_page.dart';
+import 'services/voice_command_service.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final _voiceCommandService = VoiceCommandService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize the service but don't start listening
+    _voiceCommandService.initialize();
+    // Set up navigation to storage page for "lihat hasil" command
+    _setupVoiceCommands();
+  }
+
+  void _setupVoiceCommands() {
+    _voiceCommandService.onViewResults = () {
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const StoragePage()),
+        );
+      }
+    };
+  }
+
+  @override
+  void dispose() {
+    _voiceCommandService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Mudah Membaca',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
@@ -66,7 +102,8 @@ class MyHomePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
+                  debugPrint('Navigating to ScanBookPage');
+                  Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const ScanBookPage(),
