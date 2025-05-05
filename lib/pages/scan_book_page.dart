@@ -8,6 +8,7 @@ import 'text_result_page.dart';
 import '../services/voice_command_service.dart';
 import 'dart:io';
 import 'dart:async';
+import '../main.dart'; // Add this import for MyHomePage
 
 class ScanBookPage extends StatefulWidget {
   const ScanBookPage({super.key});
@@ -64,7 +65,14 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
     // Register for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
-    _setupVolumeButtons();
+    
+    // Force a clean state for volume button service
+    _volumeButtonService.forceReset().then((_) {
+      _setupVolumeButtons();
+      // Log the volume button state after setup
+      _volumeButtonService.logState();
+    });
+    
     _setupVoiceCommand();
     
     // Periodically ensure flash is off
@@ -79,10 +87,19 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
       debugPrint('ScanBookPage route name: ${route.settings.name}');
     }
     
-    // Always restart services when dependencies change (including when returning from another screen)
-    if (mounted && _isInitialized) {
-      _restartServices();
-    }
+    // Always force a service restart when dependencies change
+    // This ensures volume buttons work when returning from another screen
+    debugPrint('didChangeDependencies called - forcing service restart');
+    
+    // A brief delay ensures the app's navigation state is stable
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        // Force recreation only if already initialized
+        if (_isInitialized) {
+          _forceRecreateServices();
+        }
+      }
+    });
     
     // Only check for auto-capture after camera is properly mounted and initialized
     if (_isInitialized && _cameraMounted && VoiceCommandService.shouldCaptureAfterNavigation) {
@@ -121,9 +138,19 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
       return;
     }
     
-    _setupVolumeButtons();
-    _setupVoiceCommand();
-    _voiceCommandService.restart();
+    // Forcefully stop and restart volume button service
+    _volumeButtonService.stopListening();
+    
+    // Wait a brief moment to ensure clean slate
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        _setupVolumeButtons();
+        _setupVoiceCommand();
+        
+        // Verify services were properly set up
+        debugPrint('Services restarted: volume=${_volumeButtonService.onVolumeDown != null}, voice=${_voiceCommandService != null}');
+      }
+    });
   }
 
   Future<void> _initializeCamera() async {
@@ -181,11 +208,42 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
   }
 
   void _setupVolumeButtons() {
+    // Clear previous callbacks to avoid any potential issues
+    _volumeButtonService.onVolumeUp = null;
+    _volumeButtonService.onVolumeDown = null;
+    
+    // Set new callbacks
     _volumeButtonService.onVolumeUp = _captureImage;
     _volumeButtonService.onVolumeDown = () {
-      Navigator.of(context).pop();
+      debugPrint('Volume Down callback triggered - redirecting to MyHomePage');
+      
+      // Stop services first
+      _volumeButtonService.stopListening();
+      _voiceCommandService.unregisterScanBookPage();
+      
+      // Show feedback to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kembali ke menu utama...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+      
+      // Use the Navigator to push a new route and remove all previous routes
+      try {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const MyHomePage()),
+          (route) => false,
+        );
+      } catch (e) {
+        debugPrint('Navigation error: $e');
+      }
     };
+    
+    // Start/restart the listening service
     _volumeButtonService.startListening();
+    debugPrint('Volume buttons set up: Up=${_volumeButtonService.onVolumeUp != null}, Down=${_volumeButtonService.onVolumeDown != null}');
   }
 
   void _setupVoiceCommand() {
@@ -290,11 +348,17 @@ class _ScanBookPageState extends State<ScanBookPage> with WidgetsBindingObserver
     _setupVoiceCommand();
     
     // Debug log to verify buttons are working
-    debugPrint('Volume button callback set? ${_volumeButtonService.onVolumeUp != null}');
+    debugPrint('Volume buttons reset: Up=${_volumeButtonService.onVolumeUp != null}, Down=${_volumeButtonService.onVolumeDown != null}');
     debugPrint('ScanBookPage registered? ${VoiceCommandService.isOnScanBookPage}');
     
     // Force initialize voice command
     await _voiceCommandService.initialize();
+    
+    // Try manually triggering startListening again after a small delay
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (mounted) {
+      _volumeButtonService.startListening();
+    }
   }
 
   @override

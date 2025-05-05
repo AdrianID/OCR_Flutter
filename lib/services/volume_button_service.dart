@@ -15,8 +15,16 @@ class VolumeButtonService {
   VoidCallback? onVolumeDown;
   // Callback untuk volume buttons pressed simultaneously
   VoidCallback? onVolumeBoth;
+  
+  // Helper method to log the current state
+  void logState() {
+    debugPrint('VolumeButtonService state: listening=$_isListening, callbacks set: '
+        'up=${onVolumeUp != null}, down=${onVolumeDown != null}, both=${onVolumeBoth != null}');
+  }
 
   Future<void> startListening() async {
+    logState();
+    
     if (_isListening) {
       debugPrint('Already listening to volume buttons');
       
@@ -127,21 +135,43 @@ class VolumeButtonService {
   
   // Force reset method - call when the service seems stuck
   Future<void> forceReset() async {
+    debugPrint('Force resetting volume button service...');
+    logState();
+    
+    // Clean up platform channel handler
+    platform.setMethodCallHandler(null);
+    
     // Clear callbacks first to prevent any lingering calls
     onVolumeUp = null;
     onVolumeDown = null;
     onVolumeBoth = null;
     
     // Force stop listening
-    await stopListening();
+    try {
+      await platform.invokeMethod('stopListening');
+    } catch (e) {
+      debugPrint('Error stopping native listener: $e');
+    }
     
     // Reset the listening flag to force a complete restart
     _isListening = false;
     
     // Wait a moment to ensure native side has time to clean up
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 300));
     
-    // We don't restart here - the caller should set up new callbacks and start listening again
     debugPrint('Volume button service has been forcefully reset');
+    logState();
+    
+    // Try to restart the native side forcefully
+    try {
+      // First make sure it's stopped
+      await platform.invokeMethod('stopListening');
+      // Then restart with delay
+      await Future.delayed(const Duration(milliseconds: 200));
+      await platform.invokeMethod('startListening');
+      debugPrint('Native volume button service restarted');
+    } catch (e) {
+      debugPrint('Error resetting native service: $e');
+    }
   }
 } 
