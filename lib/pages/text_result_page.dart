@@ -390,23 +390,6 @@ class _TextResultPageState extends State<TextResultPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hasil Pemindaian'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.summarize),
-            onPressed: _isSummarizing ? null : _summarizeText,
-            tooltip: 'Ringkas Teks',
-          ),
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _isSaving ? null : _saveAudioBook,
-            tooltip: 'Simpan Buku',
-          ),
-          IconButton(
-            icon: const Icon(Icons.storage),
-            onPressed: _navigateToStoragePage,
-            tooltip: 'Lihat Penyimpanan',
-          ),
-        ],
       ),
       body: GestureDetector(
         // Add double tap detection to force service reset as a failsafe
