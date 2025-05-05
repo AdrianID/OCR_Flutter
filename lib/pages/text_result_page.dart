@@ -431,38 +431,94 @@ class _TextResultPageState extends State<TextResultPage> {
                   Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(8.0),
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12.0),
+                      border: Border.all(color: Colors.amber.shade200, width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.2),
+                          spreadRadius: 1,
+                          blurRadius: 3,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            const Icon(Icons.auto_stories),
+                            Icon(
+                              Icons.auto_stories,
+                              color: Colors.amber.shade700,
+                              size: 24,
+                            ),
                             const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _summarizedText!,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  height: 1.5,
-                                ),
+                            const Text(
+                              "Ringkasan",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _summarizedText!,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            height: 1.5,
+                            color: Colors.black87,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Divider(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  const Divider(height: 1, thickness: 1),
+                  const SizedBox(height: 20),
                 ],
-                Text(
-                  widget.scannedText,
-                  style: const TextStyle(fontSize: 18),
+                if (_summarizedText == null) 
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 12.0),
+                    child: Text(
+                      "Tekan tombol 'Ringkas' untuk membuat ringkasan teks",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                const Row(
+                  children: [
+                    Icon(Icons.text_fields, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      "Hasil Pemindaian",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8.0),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Text(
+                    widget.scannedText,
+                    style: const TextStyle(fontSize: 16, height: 1.5),
+                  ),
                 ),
                 if (_isSpeaking || _isSaving || _isSummarizing || _isListeningToVoiceCommand)
                   Padding(
@@ -486,7 +542,29 @@ class _TextResultPageState extends State<TextResultPage> {
                           ),
                         if (_isListeningToVoiceCommand)
                           const SizedBox(width: 8),
+                        if (_isSummarizing)
+                          Icon(
+                            Icons.summarize,
+                            size: 24,
+                            color: Colors.amber.shade700,
+                          ),
+                        if (_isSummarizing)
+                          const SizedBox(width: 8),
                         const CircularProgressIndicator(),
+                        const SizedBox(width: 12),
+                        Text(
+                          _isSummarizing 
+                            ? 'Meringkas teks...' 
+                            : (_isListeningToVoiceCommand 
+                              ? 'Mendengarkan...' 
+                              : (_isSpeaking 
+                                ? (_isPaused ? 'Dijeda' : 'Membaca...') 
+                                : '')),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -495,78 +573,158 @@ class _TextResultPageState extends State<TextResultPage> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomAppBar(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isListeningToVoiceCommand 
-                    ? null 
-                    : (_isSpeaking
-                      ? (_isPaused ? () => _readText() : () {
-                          _ttsService.stop();
-                          setState(() {
-                            _isPaused = true;
-                          });
-                        })
-                      : () => _readText()),
-                  icon: _isListeningToVoiceCommand 
-                    ? const Icon(Icons.mic) 
-                    : Icon(_isSpeaking && !_isPaused ? Icons.pause : Icons.play_arrow),
-                  label: _isListeningToVoiceCommand 
-                    ? const Text('Mendengarkan...') 
-                    : Text(_isSpeaking && !_isPaused ? 'Jeda' : 'Baca'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: _isListeningToVoiceCommand ? Colors.red.shade100 : null,
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 0,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isListeningToVoiceCommand 
+                          ? null 
+                          : (_isSpeaking
+                            ? (_isPaused ? () => _readText() : () {
+                                _ttsService.stop();
+                                setState(() {
+                                  _isPaused = true;
+                                });
+                              })
+                            : () => _readText()),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: Colors.indigo.shade600,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 3,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isSpeaking && !_isPaused ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                              size: 28,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              _isSpeaking && !_isPaused ? 'Jeda Bacaan' : 'Baca Teks',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSummarizing ? null : _summarizeText,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: Colors.amber.shade700,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isSummarizing ? Icons.hourglass_top : Icons.summarize_rounded,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Ringkas Teks',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveAudioBook,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: Colors.green.shade600,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 2,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _isSaving ? Icons.downloading : Icons.save_rounded, 
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Simpan Buku',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _navigateToStoragePage,
+                    icon: const Icon(Icons.folder_open_rounded, size: 20),
+                    label: const Text(
+                      'Lihat Arsip Buku',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.blue.shade700,
+                      side: BorderSide(color: Colors.blue.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isListeningToVoiceCommand ? null : () {
-                    _voiceCommandService.startListening();
-                  },
-                  icon: const Icon(Icons.mic_none),
-                  label: const Text('Perintah Suara'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.purple.shade100,
-                    foregroundColor: Colors.purple.shade900,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isSaving || _isListeningToVoiceCommand ? null : _saveAudioBook,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Simpan'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: _isListeningToVoiceCommand ? null : _navigateToStoragePage,
-                  icon: const Icon(Icons.storage),
-                  label: const Text('Lihat'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
